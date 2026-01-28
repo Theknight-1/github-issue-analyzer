@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GitHub Issue Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  </head>
+  <body class="bg-[#3C4454] min-h-screen flex items-center justify-center">
+    <div class="bg-white p-6 rounded shadow w-full max-w-xl space-y-4">
+      <h1 class="text-2xl font-bold">GitHub Issue Analyzer</h1>
+
+      <input
+        id="repo"
+        class="w-full border p-2 rounded"
+        placeholder="owner/repo (e.g. vercel/next.js)"
+      />
+
+      <button
+        onclick="scanRepo()"
+        class="w-full bg-blue-600 text-white p-2 rounded"
+      >
+        Scan Repository
+      </button>
+
+      <textarea
+        id="prompt"
+        class="w-full border p-2 rounded"
+        rows="4"
+        placeholder="Analysis prompt"
+      ></textarea>
+
+      <button
+        onclick="analyzeRepo()"
+        class="w-full bg-green-600 text-white p-2 rounded"
+      >
+        Analyze Issues
+      </button>
+
+      <div
+        id="output"
+        class="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-auto prose prose-invert max-w-none"
+      ></div>
+    </div>
+
+    <script>
+      async function scanRepo() {
+        const repo = document.getElementById("repo").value;
+        const output = document.getElementById("output");
+        output.textContent = "Scanning...";
+
+        const res = await fetch("/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repo }),
+        });
+
+        output.textContent = JSON.stringify(await res.json(), null, 2);
+      }
+
+      async function analyzeRepo() {
+        const repo = document.getElementById("repo").value.trim();
+        const prompt = document.getElementById("prompt").value.trim();
+        const output = document.getElementById("output");
+
+        if (!repo || !prompt) {
+          output.innerHTML = "<p>Please enter a prompt before analyzing.</p>";
+          return;
+        }
+
+        output.innerHTML = "<p>Analyzing issues…</p>";
+
+        const res = await fetch("/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repo, prompt }),
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+          output.innerHTML = `<p class="text-red-400">${data.error}</p>`;
+          return;
+        }
+
+        // Render markdown
+        output.innerHTML = marked.parse(data.analysis);
+      }
+    </script>
+  </body>
+</html>
